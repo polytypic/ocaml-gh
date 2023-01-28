@@ -1,0 +1,48 @@
+#!/bin/bash -e
+
+# shellcheck source=../commands/.settings
+. "${BASH_SOURCE%/*/*}/commands/.settings"
+
+COMMAND="$OCAML_GH/commands/$1"
+
+if [ $# -ge 1 ] && [ -x "$COMMAND" ]; then
+  shift
+  exec "$COMMAND" "$@"
+fi
+
+if [ "$UPGRADE" = 1 ]; then
+  echo "Upgrading ocaml-gh..."
+  exec git -C "$OCAML_GH" pull "${GIT_QUIET[@]}" --rebase
+fi
+
+# shellcheck disable=SC2035
+COMMANDS="$(cd "$OCAML_GH/commands" && echo *)"
+COMMANDS="${COMMANDS// /|}"
+
+BRANCH="$(git -C "$OCAML_GH" symbolic-ref --short HEAD)"
+
+cat << EOF
+Usage: ${0##*/} [$COMMANDS]
+
+Branch: $BRANCH
+$(git -C "$OCAML_GH" log -n 5 --pretty=oneline --abbrev-commit | sed 's#^#  #g')
+EOF
+
+git -C "$OCAML_GH" fetch "${GIT_QUIET[@]}" origin "$BRANCH"
+
+ORIGIN="$(git -C "$OCAML_GH" log --pretty=oneline --abbrev-commit "..origin/$BRANCH" | sed 's#^#  #g')"
+if [ -n "$ORIGIN" ]; then
+  cat << EOF
+
+Origin:
+$ORIGIN
+
+Run
+
+  UPGRADE=1 ${0##*/}
+
+to upgrade ${0##*/}.
+EOF
+fi
+
+exit 1
