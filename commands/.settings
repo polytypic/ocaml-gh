@@ -1,0 +1,33 @@
+#!/bin/bash -e
+
+set -eo pipefail
+
+TRACE="${TRACE:-0}"
+
+if [ "${XTRACE:-$TRACE}" = 1 ]; then
+  set -x
+fi
+
+export OCAML_GH="${BASH_SOURCE%/*/*}"
+
+QUIET="${QUIET:-1}"
+
+if [ "${GIT_QUIET:-$QUIET}" = 0 ]; then
+  GIT_QUIET=()
+else
+  GIT_QUIET=(--quiet)
+fi
+
+export DOCS_DIR="_build/default/_doc/_html"
+if [ -d docs ]; then
+  DOCS_DIR="docs"
+fi
+
+export PROJECT
+PROJECT=$(pwd)
+PROJECT="${PROJECT##*/}"
+
+if [ -e .ocaml-gh ]; then
+  # shellcheck disable=SC1091
+  . .ocaml-gh
+fi

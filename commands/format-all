@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# shellcheck source=.settings
+. "${BASH_SOURCE%/*}/.settings"
+
+if [ $# -ne 0 ] || [ ! -e .ocaml-gh ]; then
+  CMD="${0##*/}"
+  cat << EOF
+Usage: $CMD
+
+Format all .ml and .mli files under src with ocamlformat.
+EOF
+  exit 1
+fi
+
+find src \( -name '*.ml' -o -name '*.mli' \) -print0 \
+  | xargs -0 ocamlformat --inplace

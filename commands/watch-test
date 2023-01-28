@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# shellcheck source=.settings
+. "${BASH_SOURCE%/*}/.settings"
+
+COMMAND="(\
+  echo $'<<< <<< <<<' && \
+  ocaml-gh ci && \
+  echo $'\n>>> >>> >>>' \
+)"
+
+if command -v watchexec > /dev/null; then
+  watchexec --project-origin . --debounce 250 "${WATCHEXEC_OPTS[@]}" -- "$COMMAND"
+else
+  >&2 echo "WARNING: Could not find suitable file watcher."
+  exit 1
+fi

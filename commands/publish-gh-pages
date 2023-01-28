@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# shellcheck source=.settings
+. "${BASH_SOURCE%/*}/.settings"
+
+main() {
+  mkdir tmp
+  cd tmp
+
+  git clone "$GIT"
+
+  cp -r "$PROJECT" gh-pages
+  cd gh-pages
+  git checkout --orphan gh-pages
+  git rm -rf .
+
+  cd ../"$PROJECT"
+  for BRANCH in $( \
+    git for-each-ref --format="%(refname:lstrip=3)" refs/remotes/origin/ \
+      | grep -v -e "^HEAD$" -e "^gh-pages$"); do
+    git checkout "$BRANCH"
+    if CI=true ocaml-gh ci; then
+      cp -r docs "../gh-pages/$BRANCH"
+      rm -f "../gh-pages/$BRANCH/.gitignore"
+    else
+      echo "Build of $BRANCH failed -- skipping"
+    fi
+  done
+
+  cd ../gh-pages
+  git add .
+  git commit -m "gh-pages"
+  git push -f -u origin gh-pages
+
+  cd ../..
+  rm -rf tmp
+}
+
+main

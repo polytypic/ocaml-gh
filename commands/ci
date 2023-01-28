@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# shellcheck source=.settings
+. "${BASH_SOURCE%/*}/.settings"
+
+main() {
+  if [ "$(type -t ocaml-gh-ci-before)" == "function" ]; then
+    ocaml-gh-ci-before
+  fi
+  if [ "$CI" = true ]; then
+    PROFILE='' build-and-test
+    clean
+  fi
+  PROFILE=release build-and-test
+  build-docs
+  check-git-clean
+}
+
+build-and-test() {
+  OPTS=(--root=.)
+
+  if [ -n "$PROFILE" ]; then
+     OPTS+=(--profile "$PROFILE")
+  fi
+
+  folded "Building" \
+    opam exec -- dune build "${OPTS[@]}"
+
+  folded "Testing" \
+    opam exec -- dune test "${OPTS[@]}"
+
+  if [ "$(type -t ocaml-gh-ci-after-build-and-test)" == "function" ]; then
+    ocaml-gh-ci-after-build-and-test
+  fi
+}
+
+clean() {
+  folded "Cleaning" \
+    opam exec -- dune clean
+}
+
+build-docs() {
+  folded "Building docs" \
+    opam exec -- dune build @doc --root=.
+
+  if [ -d docs ]; then
+    if [ -d _build/default/_doc/_html ]; then
+      mkdir -p docs/api
+      rm -rf docs/api/*
+      cp -r _build/default/_doc/_html/* docs/api
+    fi
+
+    if [ "$(type -t ocaml-gh-ci-after-build-docs)" == "function" ]; then
+      ocaml-gh-ci-after-build-docs
+    fi
+  fi
+}
+
+check-git-clean() {
+  if [ "$CI" = true ]; then
+    if [[ $(git status --porcelain) ]] ; then
+      git status
+      git diff
+      exit 1
+    fi
+  fi
+}
+
+folded() {
+  echo
+  echo "JOB: $1"
+  shift
+  local TIMEFORMAT="CPU: %Us, Real: %Es"
+  time "$@"
+}
+
+main

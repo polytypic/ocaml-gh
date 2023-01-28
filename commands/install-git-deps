@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# shellcheck source=.settings
+. "${BASH_SOURCE%/*}/.settings"
+
+# shellcheck disable=SC2153
+for GIT_DEP in "${GIT_DEPS[@]}"; do
+  opam pin -y "$GIT_DEP"
+done
